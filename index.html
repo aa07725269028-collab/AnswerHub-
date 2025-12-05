@@ -1,2546 +1,332 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌟 النظام الجفري المتكامل - النسخة الدقيقة</title>
+// ==============================================================================
+// إضافة دالة لملء الحقول الفلكية تلقائياً
+// ==============================================================================
+
+// دالة حساب رب الساعة (الكوكب) حسب اليوم والساعة
+function calculateHourLord() {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=أحد, 6=سبت
+    const hour = now.getHours();
     
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+    // جدول الكواكب حسب الأيام (طريقة تقليدية)
+    const dayPlanets = {
+        0: 'الشمس',   // الأحد للشمس
+        1: 'القمر',   // الاثنين للقمر
+        2: 'المريخ',  // الثلاثاء للمريخ
+        3: 'عطارد',  // الأربعاء لعطارد
+        4: 'المشتري', // الخميس للمشتري
+        5: 'الزهرة',  // الجمعة للزهرة
+        6: 'زحل'     // السبت لزحل
+    };
     
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Noto Naskh Arabic', serif;
-        }
-
-        :root {
-            --primary-color: #0d9488;
-            --primary-dark: #0f766e;
-            --secondary-color: #f59e0b;
-            --danger-color: #ef4444;
-            --warning-color: #f59e0b;
-            --info-color: #3b82f6;
-            
-            --bg-dark: #1f2937;
-            --bg-darker: #111827;
-            --bg-card: #374151;
-            --bg-hover: #4b5563;
-            
-            --text-primary: #f9fafb;
-            --text-secondary: #d1d5db;
-            --text-muted: #9ca3af;
-            
-            --border-color: #4b5563;
-            
-            --success-bg: rgba(13, 148, 136, 0.1);
-            --warning-bg: rgba(245, 158, 11, 0.1);
-            --danger-bg: rgba(239, 68, 68, 0.1);
-            --info-bg: rgba(59, 130, 246, 0.1);
-        }
-
-        body {
-            background: var(--bg-darker);
-            color: var(--text-primary);
-            min-height: 100vh;
-            line-height: 1.6;
-        }
-
-        /* Scrollbar Styling */
-        ::-webkit-scrollbar {
-            width: 10px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--bg-dark);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary-color);
-            border-radius: 5px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-dark);
-        }
-
-        /* Header */
-        .header {
-            background: linear-gradient(135deg, 
-                rgba(17, 24, 39, 0.95) 0%,
-                rgba(31, 41, 55, 0.95) 100%);
-            backdrop-filter: blur(5px);
-            border-bottom: 2px solid var(--primary-color);
-            padding: 20px 0;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .logo-icon {
-            font-size: 2.5rem;
-            color: var(--secondary-color);
-        }
-
-        .logo-text h1 {
-            font-size: 1.8rem;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
-        .logo-text p {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        .nav-tabs {
-            display: flex;
-            gap: 10px;
-            background: var(--bg-card);
-            padding: 5px;
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
-        }
-
-        .nav-tab {
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .nav-tab:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-        }
-
-        .nav-tab.active {
-            background: var(--primary-color);
-            color: white;
-            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.4);
-        }
-
-        /* Main Content */
-        .main-content {
-            display: grid;
-            grid-template-columns: 350px 1fr 400px;
-            gap: 25px;
-            padding: 25px 0;
-            min-height: calc(100vh - 80px);
-        }
-
-        @media (max-width: 1200px) {
-            .main-content {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto auto auto;
-            }
-        }
-
-        /* Sidebar */
-        .sidebar {
-            background: var(--bg-card);
-            border-radius: 15px;
-            padding: 25px;
-            border: 1px solid var(--border-color);
-            height: fit-content;
-        }
-
-        .sidebar-section {
-            margin-bottom: 30px;
-        }
-
-        .sidebar-section:last-child {
-            margin-bottom: 0;
-        }
-
-        .section-title {
-            color: var(--secondary-color);
-            font-size: 1.1rem;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .section-title i {
-            font-size: 1.2rem;
-            color: var(--primary-color);
-        }
-
-        /* Input Groups */
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-        .input-label {
-            display: block;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-            font-size: 0.95rem;
-        }
-
-        .required::after {
-            content: " *";
-            color: var(--secondary-color);
-        }
-
-        .input-field {
-            width: 100%;
-            background: var(--bg-dark);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px 15px;
-            color: var(--text-primary);
-            font-size: 1rem;
-            transition: border-color 0.3s;
-        }
-
-        .input-field:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.3);
-        }
-
-        textarea.input-field {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        textarea#expectedAnswer {
-            min-height: 80px;
-        }
-
-        /* Checkbox & Radio */
-        .checkbox-group, .radio-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .checkbox-item, .radio-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-        }
-
-        .checkbox-item input, .radio-item input {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-        /* Buttons */
-        .btn {
-            padding: 12px 25px;
-            border-radius: 8px;
-            border: none;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            width: 100%;
-        }
-
-        .btn-primary {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
-        }
-
-        .btn-danger {
-            background: var(--danger-color);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #dc2626;
-            transform: translateY(-2px);
-        }
-
-        .btn-info {
-            background: var(--info-color);
-            color: white;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .btn-group .btn {
-            flex: 1;
-        }
-
-        /* Main Panel */
-        .main-panel {
-            background: var(--bg-card);
-            border-radius: 15px;
-            padding: 25px;
-            border: 1px solid var(--border-color);
-            display: none;
-        }
-
-        .main-panel.active {
-            display: block;
-        }
-
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .panel-title {
-            font-size: 1.5rem;
-            color: var(--text-primary);
-        }
-
-        .panel-subtitle {
-            color: var(--text-muted);
-            font-size: 1rem;
-        }
-
-        .panel-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        /* Steps */
-        .steps-container {
-            margin-bottom: 30px;
-        }
-
-        .step {
-            background: var(--bg-dark);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-left: 4px solid var(--secondary-color);
-        }
-
-        .step-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .step-number {
-            background: var(--primary-color);
-            color: white;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-
-        .step-title {
-            color: var(--text-primary);
-            font-size: 1.1rem;
-            flex: 1;
-            margin-right: 15px;
-        }
-
-        .step-status {
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-        }
-
-        .status-pending {
-            background: var(--warning-bg);
-            color: var(--warning-color);
-            border: 1px solid var(--warning-color);
-        }
-
-        .status-completed {
-            background: var(--success-bg);
-            color: var(--secondary-color);
-            border: 1px solid var(--secondary-color);
-        }
-
-        .status-processing {
-            background: var(--info-bg);
-            color: var(--info-color);
-            border: 1px solid var(--info-color);
-        }
-
-        .step-content {
-            color: var(--text-secondary);
-            font-family: monospace;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 15px;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin-top: 10px;
-        }
-
-        /* Tables */
-        .table-responsive {
-            overflow-x: auto;
-            margin: 20px 0;
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            background: var(--bg-dark);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .table th {
-            background: var(--primary-color);
-            color: white;
-            padding: 15px;
-            text-align: center;
-            font-weight: 600;
-            position: sticky;
-            top: 0;
-        }
-
-        .table td {
-            padding: 12px 15px;
-            text-align: center;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-secondary);
-        }
-
-        .table tr:hover {
-            background: var(--bg-hover);
-        }
-
-        /* Results Panel */
-        .results-panel {
-            background: var(--bg-card);
-            border-radius: 15px;
-            padding: 25px;
-            border: 1px solid var(--border-color);
-            height: fit-content;
-        }
-
-        .result-item {
-            background: var(--bg-dark);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border-color);
-        }
-
-        .result-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-            color: var(--primary-color);
-        }
-
-        .result-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-        }
-
-        .result-content {
-            color: var(--text-secondary);
-            line-height: 1.8;
-        }
-
-        .result-highlight {
-            color: var(--text-primary);
-            background: rgba(13, 148, 136, 0.1);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-weight: 500;
-        }
-
-        /* Final Answer Box */
-        .final-answer-box {
-            background: var(--success-bg);
-            border: 2px solid var(--primary-color);
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 10px;
-            font-size: 1.4rem;
-            font-weight: bold;
-            color: var(--primary-color);
-            text-align: center;
-            line-height: 1.8;
-            min-height: 150px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        /* Progress Bar */
-        .progress-container {
-            margin: 30px 0;
-        }
-
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-
-        .progress-bar {
-            height: 8px;
-            background: var(--bg-dark);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-            border-radius: 4px;
-            transition: width 0.3s ease;
-        }
-
-        /* Messages */
-        .message {
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-            display: none;
-        }
-
-        .message-success {
-            background: var(--success-bg);
-            border: 1px solid var(--secondary-color);
-            color: #a7f3d0;
-        }
-
-        .message-error {
-            background: var(--danger-bg);
-            border: 1px solid var(--danger-color);
-            color: #fca5a5;
-        }
-
-        .message-warning {
-            background: var(--warning-bg);
-            border: 1px solid var(--warning-color);
-            color: #fde68a;
-        }
-
-        .message-info {
-            background: var(--info-bg);
-            border: 1px solid var(--info-color);
-            color: #93c5fd;
-        }
-
-        /* Loading */
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(17, 24, 39, 0.95);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            backdrop-filter: blur(5px);
-        }
-
-        .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(13, 148, 136, 0.3);
-            border-top-color: var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Code Blocks */
-        .code-block {
-            background: #111827;
-            border-radius: 8px;
-            padding: 15px;
-            font-family: 'Courier New', monospace;
-            color: var(--text-secondary);
-            overflow-x: auto;
-            margin: 10px 0;
-            border: 1px solid var(--border-color);
-            line-height: 1.4;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 20px;
-            }
-            
-            .nav-tabs {
-                width: 100%;
-                overflow-x: auto;
-                padding: 5px;
-            }
-            
-            .nav-tab {
-                white-space: nowrap;
-            }
-            
-            .main-panel, .results-panel {
-                padding: 15px;
-            }
-            
-            .step-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
-                <div class="logo">
-                    <div class="logo-icon">🌟</div>
-                    <div class="logo-text">
-                        <h1>النظام الجفري المتكامل</h1>
-                        <p>الإصدار الدقيق - تطبيق الـ 15 سطراً الجفرية</p>
-                    </div>
-                </div>
-                
-                <div class="nav-tabs">
-                    <div class="nav-tab active" onclick="uiHandler.switchPanel('panel-main')">
-                        🏠 الرئيسية
-                    </div>
-                    <div class="nav-tab" onclick="uiHandler.switchPanel('panel-calculation')">
-                        🧮 الحساب الجفري
-                    </div>
-                    <div class="nav-tab" onclick="uiHandler.switchPanel('panel-tables')">
-                        📊 الجداول والثوابت
-                    </div>
-                    <div class="nav-tab" onclick="uiHandler.switchPanel('panel-analysis')">
-                        🔍 التحليل والتأويل
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <div class="container">
-        <div class="main-content">
-            <div class="sidebar">
-                <div class="sidebar-section">
-                    <div class="section-title">
-                        <i>📝</i>
-                        <span>مدخلات السؤال المحوري</span>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label required">السؤال الرئيسي</label>
-                        <textarea id="mainQuestion" class="input-field" placeholder="اكتب سؤالك الجفري هنا..."></textarea>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label">الجواب المتوقع (اختياري)</label>
-                        <textarea id="expectedAnswer" class="input-field" placeholder="اكتب الجواب المتوقع للمقارنة"></textarea>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label required">اسم السائل</label>
-                        <input type="text" id="askerName" class="input-field" placeholder="اسمك الكريم">
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label">اسم الأم (اختياري)</label>
-                        <input type="text" id="motherName" class="input-field" placeholder="اسم والدتك">
-                    </div>
-                </div>
-                
-                <div class="sidebar-section">
-                    <div class="section-title">
-                        <i>🕰️</i>
-                        <span>العوامل الزمنية (هجري)</span>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div class="input-group">
-                            <label class="input-label required">اليوم</label>
-                            <select id="day" class="input-field">
-                                <option value="">جاري التحميل...</option>
-                            </select>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label class="input-label required">الشهر</label>
-                            <select id="month" class="input-field">
-                                <option value="">جاري التحميل...</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label required">السنة الهجرية</label>
-                        <input type="number" id="year" class="input-field" placeholder="مثال: 1447" min="1" max="2000">
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label">رب الساعة (الكوكب)</label>
-                        <select id="hourLord" class="input-field">
-                            <option value="">اختر الكوكب</option>
-                            <option value="الشمس">الشمس</option>
-                            <option value="القمر">القمر</option>
-                            <option value="المريخ">المريخ</option>
-                            <option value="عطارد">عطارد</option>
-                            <option value="المشتري">المشتري</option>
-                            <option value="الزهرة">الزهرة</option>
-                            <option value="زحل">زحل</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="sidebar-section">
-                    <div class="section-title">
-                        <i>✨</i>
-                        <span>العوامل الفلكية</span>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label required">طالع البرج</label>
-                        <select id="risingSign" class="input-field">
-                            <option value="">جاري التحميل...</option>
-                        </select>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label">برج القمر</label>
-                        <select id="moonSign" class="input-field">
-                            <option value="">جاري التحميل...</option>
-                        </select>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label">منزلة القمر</label>
-                        <select id="moonMansion" class="input-field">
-                            <option value="">جاري التحميل...</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="btn-group">
-                    <button class="btn btn-primary" onclick="uiHandler.startCalculation()" id="startBtn">
-                        <span>🚀 بدء الحساب الجفري</span>
-                    </button>
-                    <button class="btn btn-danger" onclick="uiHandler.resetAll()">
-                        <span>🔄 إعادة تعيين</span>
-                    </button>
-                </div>
-                
-                <div class="progress-container">
-                    <div class="progress-header">
-                        <span>تقدم الحساب</span>
-                        <span id="progressPercent">0%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="panel-main" class="main-panel active">
-                <div class="panel-header">
-                    <div>
-                        <h2 class="panel-title">🏠 الصفحة الرئيسية</h2>
-                        <p class="panel-subtitle">مرحباً بك في النظام الجفري المتكامل</p>
-                    </div>
-                </div>
-                
-                <div class="welcome-section">
-                    <div class="message message-success" id="success-message" style="display:none;"></div>
-                    <div class="message message-error" id="error-message" style="display:none;"></div>
-                    <div class="message message-warning" id="warning-message" style="display:none;"></div>
-                    <div class="message message-info" id="info-message">
-                        <strong>📋 إرشادات الاستخدام:</strong>
-                        <p>✅ <strong>الميزات الجديدة:</strong></p>
-                        <p>1. يتم ملء التاريخ الهجري تلقائياً من نظامك</p>
-                        <p>2. تم إصلاح جميع الأخطاء في الخوارزمية الجفرية</p>
-                        <p>3. تطبيق دقيق لقواعد الـ 15 سطراً الجفرية</p>
-                        <p>4. إضافة حقل للجواب المتوقع للمقارنة</p>
-                        <p>5. تحسين دقة الحسابات الفلكية والزمنية</p>
-                    </div>
-                    
-                    <div class="step">
-                        <div class="step-header">
-                            <div class="step-number">1</div>
-                            <div class="step-title">الإعداد والتأسيس</div>
-                            <div class="step-status status-completed">مكتمل</div>
-                        </div>
-                        <div class="step-content">
-                            ✅ تم تحميل جميع الجداول الجفرية الثابتة
-                            ✅ تم تهيئة النظام بالتاريخ الهجري الحالي
-                            ✅ جاهز لاستقبال المدخلات
-                        </div>
-                    </div>
-                    
-                    <div class="step">
-                        <div class="step-header">
-                            <div class="step-number">2</div>
-                            <div class="step-title">التنفيذ التفصيلي</div>
-                            <div class="step-status status-pending">بانتظار المدخلات</div>
-                        </div>
-                        <div class="step-content">
-                            ⏳ جاهز لتنفيذ الـ 15 سطراً الجفري بدقة
-                            ⏳ جاهز لحساب العوامل الخارجية (زمنية وفلكية)
-                            ⏳ جاهز لمعالجة المدخلات والاستنطاق
-                        </div>
-                    </div>
-                    
-                    <div class="step">
-                        <div class="step-header">
-                            <div class="step-number">3</div>
-                            <div class="step-title">التحكيم والتأويل</div>
-                            <div class="step-status status-pending">بانتظار النتائج</div>
-                        </div>
-                        <div class="step-content">
-                            ⏳ جاهز لتحليل النتائج وتكسير الجواب
-                            ⏳ جاهز للمقارنة مع الجواب المتوقع
-                            ⏳ جاهز لتأويل الجواب النهائي
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="panel-calculation" class="main-panel">
-                <div class="panel-header">
-                    <div>
-                        <h2 class="panel-title">🧮 الحساب الجفري التفصيلي</h2>
-                        <p class="panel-subtitle">خطوات حساب الـ 15 سطراً الجفرية</p>
-                    </div>
-                    <div class="panel-actions">
-                        <button class="btn btn-info" onclick="uiHandler.exportCalculation()">
-                            <span>📥 تصدير الحساب</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="calculationSteps">
-                    <div class="message message-info">
-                        ⏳ لم تبدأ عملية الحساب بعد. يرجى ملء المدخلات والضغط على "بدء الحساب الجفري"
-                    </div>
-                </div>
-            </div>
-            
-            <div id="panel-tables" class="main-panel">
-                <div class="panel-header">
-                    <div>
-                        <h2 class="panel-title">📊 الجداول والثوابت</h2>
-                        <p class="panel-subtitle">قواعد البيانات الجفرية الثابتة</p>
-                    </div>
-                    <div class="panel-actions">
-                        <button class="btn btn-info" onclick="uiHandler.refreshTables()">
-                            <span>🔄 تحديث</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="nav-tabs" style="margin-bottom: 20px;">
-                    <div class="nav-tab active" onclick="uiHandler.showTableTab('abjad')">الأبجدية</div>
-                    <div class="nav-tab" onclick="uiHandler.showTableTab('nazair')">النظائر</div>
-                    <div class="nav-tab" onclick="uiHandler.showTableTab('nisbat')">حاصل النسب</div>
-                    <div class="nav-tab" onclick="uiHandler.showTableTab('tabai')">الطبائع</div>
-                    <div class="nav-tab" onclick="uiHandler.showTableTab('buruj')">الأبراج</div>
-                    <div class="nav-tab" onclick="uiHandler.showTableTab('manazil')">منازل القمر</div>
-                </div>
-                
-                <div id="tablesContent">
-                    <div class="message message-info">
-                        ⏳ جاري تحميل الجداول...
-                    </div>
-                </div>
-            </div>
-            
-            <div id="panel-analysis" class="main-panel">
-                <div class="panel-header">
-                    <div>
-                        <h2 class="panel-title">🔍 التحليل والتأويل</h2>
-                        <p class="panel-subtitle">تحليل النتائج وتفسير الجواب</p>
-                    </div>
-                </div>
-                
-                <div id="analysisContent">
-                    <div class="message message-warning">
-                        ⚠️ لم يتم إجراء أي تحليل بعد. يرجى إتمام الحساب أولاً
-                    </div>
-                </div>
-            </div>
-            
-            <div class="results-panel">
-                <div class="section-title">
-                    <i>📊</i>
-                    <span>النتائج والملخص</span>
-                </div>
-                
-                <div class="result-item">
-                    <div class="result-header">
-                        <i>🎯</i>
-                        <span class="result-title">الجواب النهائي</span>
-                    </div>
-                    <div class="final-answer-box" id="finalAnswer">
-                        لم يتم حساب جواب بعد
-                    </div>
-                </div>
-                
-                <div class="result-item">
-                    <div class="result-header">
-                        <i>🔢</i>
-                        <span class="result-title">المداخل الأربعة</span>
-                    </div>
-                    <div class="result-content" id="entrancesResult">
-                        المدخل الكبير: --
-                        <br>المدخل الوسيط الكبير: --
-                        <br>مجموع المدخل الوسيط: --
-                        <br>المدخل الصغير: --
-                    </div>
-                </div>
-                
-                <div class="result-item">
-                    <div class="result-header">
-                        <i>⚙️</i>
-                        <span class="result-title">حالة النظام</span>
-                    </div>
-                    <div class="result-content" id="systemStatus">
-                        <span class="result-highlight">جاهز</span> - ينتظر المدخلات
-                    </div>
-                </div>
-                
-                <div class="result-item">
-                    <div class="result-header">
-                        <i>📈</i>
-                        <span class="result-title">إحصائيات الحساب</span>
-                    </div>
-                    <div class="result-content" id="calculationStats">
-                        وقت البدء: --
-                        <br>الوقت المستغرق: --
-                        <br>عدد الخطوات: 0
-                        <br>حالة: غير مبدأ
-                    </div>
-                </div>
-                
-                <div class="btn-group">
-                    <button class="btn btn-secondary" onclick="uiHandler.showDetailedResults()">
-                        <span>📄 عرض التفاصيل الكاملة</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    // حساب الكوكب حسب الساعة (كل ساعة يتحكم بها كوكب)
+    const hourPlanets = ['الشمس', 'الزهرة', 'عطارد', 'القمر', 'زحل', 'المشتري', 'المريخ'];
+    const hourIndex = hour % 7;
     
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-spinner"></div>
-        <h3>جاري المعالجة الجفرية...</h3>
-        <p>هذه العملية قد تستغرق عدة ثوانٍ</p>
-        <div id="loadingDetails" style="margin-top: 20px; color: var(--text-muted);"></div>
-    </div>
+    return hourPlanets[hourIndex];
+}
 
-    <script>
-        // ==============================================================================
-        // 1. ملف الثوابت والوظائف المساعدة (constants-and-helpers.js)
-        // ==============================================================================
+// دالة حساب طالع البرج حسب الشهر والساعة
+function calculateRisingSign() {
+    const now = new Date();
+    const month = now.getMonth(); // 0-11
+    const hour = now.getHours();
+    
+    // كل برج يغطي حوالي شهر
+    const signs = [
+        'الحمل', 'الثور', 'الجوزاء', 'السرطان', 
+        'الأسد', 'السنبلة', 'الميزان', 'العقرب', 
+        'القوس', 'الجدي', 'الدلو', 'الحوت'
+    ];
+    
+    // حساب تقريبي للطالع حسب الشهر والساعة
+    let signIndex = month;
+    
+    // تعديل حسب الساعة (كل ساعتين برج)
+    const hourAdjustment = Math.floor(hour / 2) % 12;
+    signIndex = (signIndex + hourAdjustment) % 12;
+    
+    return signs[signIndex];
+}
 
-        // الأبجدية الكبيرة (حساب الجمل الكبير)
-        const ABJAD_KABIR = {
-            'ا': 1, 'أ': 1, 'إ': 1, 'آ': 1, 'ء': 1,
-            'ب': 2, 'ج': 3, 'د': 4, 'ه': 5, 'ة': 5, 'و': 6, 'ز': 7, 'ح': 8, 'ط': 9, 'ي': 10,
-            'ك': 20, 'ل': 30, 'م': 40, 'ن': 50, 'س': 60, 'ع': 70, 'ف': 80, 'ص': 90, 'ق': 100,
-            'ر': 200, 'ش': 300, 'ت': 400, 'ث': 500, 'خ': 600, 'ذ': 700, 'ض': 800, 'ظ': 900, 'غ': 1000
-        };
+// دالة حساب برج القمر
+function calculateMoonSign() {
+    const now = new Date();
+    const dayOfMonth = now.getDate();
+    
+    // تغيير برج القمر كل 2.5 يوم تقريباً
+    const signs = [
+        'الحمل', 'الثور', 'الجوزاء', 'السرطان', 
+        'الأسد', 'السنبلة', 'الميزان', 'العقرب', 
+        'القوس', 'الجدي', 'الدلو', 'الحوت'
+    ];
+    
+    const signIndex = Math.floor(dayOfMonth / 2.5) % 12;
+    return signs[signIndex];
+}
 
-        // الأبجدية الوضعية (الجمل الصغير - 28 حرفاً)
-        const ABJAD_WADII = {
-            1: 'أ', 2: 'ب', 3: 'ج', 4: 'د', 5: 'ه', 6: 'و', 7: 'ز', 8: 'ح', 9: 'ط', 10: 'ي',
-            11: 'ك', 12: 'ل', 13: 'م', 14: 'ن', 15: 'س', 16: 'ع', 17: 'ف', 18: 'ص', 19: 'ق', 20: 'ر',
-            21: 'ش', 22: 'ت', 23: 'ث', 24: 'خ', 25: 'ذ', 26: 'ض', 27: 'ظ', 28: 'غ'
-        };
+// دالة حساب منزلة القمر
+function calculateMoonMansion() {
+    const now = new Date();
+    const dayOfLunarMonth = (now.getDate() % 28) || 28;
+    
+    const mansions = Object.keys(MANAZIL_ALQAMAR);
+    const mansionIndex = (dayOfLunarMonth - 1) % 28;
+    return mansions[mansionIndex];
+}
+
+// ==============================================================================
+// إضافة دالة لملء الحقول تلقائياً في UIHandler
+// ==============================================================================
+
+class UIHandler {
+    constructor() {
+        this.jafrCore = new JafrCore();
+        this.isCalculating = false;
+        this.initialize();
+    }
+
+    initialize() {
+        this.populateDropdowns();
+        this.setCurrentHijriDate();
+        this.autoFillAstronomicalFields(); // إضافة هذه الدالة
+        this.setupEventListeners();
+        this.updateSystemStatus();
+        this.showTableTab('abjad');
+    }
+
+    autoFillAstronomicalFields() {
+        // ملء رب الساعة (الكوكب)
+        const hourLord = calculateHourLord();
+        document.getElementById('hourLord').value = hourLord;
         
-        // جدول النظائر (المتقابلات)
-        const NAZAIR = {
-            'أ': 'س', 'ب': 'ع', 'ج': 'ف', 'د': 'ص', 'ه': 'ق', 'و': 'ر', 'ز': 'ش', 'ح': 'ت', 'ط': 'ث', 'ي': 'خ',
-            'ك': 'ذ', 'ل': 'ض', 'م': 'ظ', 'ن': 'غ', 'س': 'أ', 'ع': 'ب', 'ف': 'ج', 'ص': 'د', 'ق': 'ه', 'ر': 'و',
-            'ش': 'ز', 'ت': 'ح', 'ث': 'ط', 'خ': 'ي', 'ذ': 'ك', 'ض': 'ل', 'ظ': 'م', 'غ': 'ن'
-        };
-
-        // جدول حاصل النسب الجفري (9x9)
-        const NISBAT_TABLE = {
-            '1-1': 1, '1-2': 2, '1-3': 3, '1-4': 4, '1-5': 5, '1-6': 6, '1-7': 7, '1-8': 8, '1-9': 9,
-            '2-1': 2, '2-2': 4, '2-3': 6, '2-4': 8, '2-5': 10, '2-6': 12, '2-7': 14, '2-8': 16, '2-9': 18,
-            '3-1': 3, '3-2': 6, '3-3': 9, '3-4': 12, '3-5': 15, '3-6': 18, '3-7': 21, '3-8': 24, '3-9': 27,
-            '4-1': 4, '4-2': 8, '4-3': 12, '4-4': 16, '4-5': 20, '4-6': 24, '4-7': 28, '4-8': 32, '4-9': 36,
-            '5-1': 5, '5-2': 10, '5-3': 15, '5-4': 20, '5-5': 25, '5-6': 30, '5-7': 35, '5-8': 40, '5-9': 45,
-            '6-1': 6, '6-2': 12, '6-3': 18, '6-4': 24, '6-5': 30, '6-6': 36, '6-7': 42, '6-8': 48, '6-9': 54,
-            '7-1': 7, '7-2': 14, '7-3': 21, '7-4': 28, '7-5': 35, '7-6': 42, '7-7': 49, '7-8': 56, '7-9': 63,
-            '8-1': 8, '8-2': 16, '8-3': 24, '8-4': 32, '8-5': 40, '8-6': 48, '8-7': 56, '8-8': 64, '8-9': 72,
-            '9-1': 9, '9-2': 18, '9-3': 27, '9-4': 36, '9-5': 45, '9-6': 54, '9-7': 63, '9-8': 72, '9-9': 81
-        };
-
-        // تحويل الأرقام إلى حروف (الاستنطاق)
-        const NUMBER_TO_LETTERS = {
-            1: 'أ', 2: 'ب', 3: 'ج', 4: 'د', 5: 'ه', 6: 'و', 7: 'ز', 8: 'ح', 9: 'ط', 10: 'ي',
-            20: 'ك', 30: 'ل', 40: 'م', 50: 'ن', 60: 'س', 70: 'ع', 80: 'ف', 90: 'ص',
-            100: 'ق', 200: 'ر', 300: 'ش', 400: 'ت', 500: 'ث', 600: 'خ', 700: 'ذ', 800: 'ض',
-            900: 'ظ', 1000: 'غ'
-        };
+        // ملء طالع البرج
+        const risingSign = calculateRisingSign();
+        document.getElementById('risingSign').value = risingSign;
         
-        // جدول الطبائع الأربعة
-        const TABAII = {
-            'ناري': ['أ', 'ه', 'ط', 'م', 'ف', 'ش', 'ذ'],
-            'هوائي': ['ب', 'و', 'ي', 'ن', 'ص', 'ت', 'ض'],
-            'مائي': ['ج', 'ز', 'ك', 'س', 'ق', 'ث', 'ظ'],
-            'ترابي': ['د', 'ح', 'ل', 'ع', 'ر', 'خ', 'غ']
-        };
-
-        // الأبراج الفلكية وقيمها
-        const BURUJ = {
-            'الحمل': { value: 39, element: 'ناري', ruler: 'المريخ' },
-            'الثور': { value: 106, element: 'ترابي', ruler: 'الزهرة' },
-            'الجوزاء': { value: 203, element: 'هوائي', ruler: 'عطارد' },
-            'السرطان': { value: 310, element: 'مائي', ruler: 'القمر' },
-            'الأسد': { value: 437, element: 'ناري', ruler: 'الشمس' },
-            'السنبلة': { value: 584, element: 'ترابي', ruler: 'عطارد' },
-            'الميزان': { value: 751, element: 'هوائي', ruler: 'الزهرة' },
-            'العقرب': { value: 938, element: 'مائي', ruler: 'المريخ' },
-            'القوس': { value: 1145, element: 'ناري', ruler: 'المشتري' },
-            'الجدي': { value: 1372, element: 'ترابي', ruler: 'زحل' },
-            'الدلو': { value: 1619, element: 'هوائي', ruler: 'زحل' },
-            'الحوت': { value: 1886, element: 'مائي', ruler: 'المشتري' }
-        };
-
-        // منازل القمر
-        const MANAZIL_ALQAMAR = {
-            'الشرطان': { value: 5, letter: 'ب' },
-            'البطين': { value: 13, letter: 'ج' },
-            'الثريا': { value: 21, letter: 'د' },
-            'الدبران': { value: 49, letter: 'ه' },
-            'الهقعة': { value: 92, letter: 'و' },
-            'الهنعة': { value: 121, letter: 'ز' },
-            'الذراع': { value: 145, letter: 'ح' },
-            'النثرة': { value: 177, letter: 'ط' },
-            'الطرف': { value: 213, letter: 'ي' },
-            'الجبهة': { value: 249, letter: 'ك' },
-            'الزبرة': { value: 278, letter: 'ل' },
-            'الصرفة': { value: 307, letter: 'م' },
-            'العواء': { value: 329, letter: 'ن' },
-            'السماك': { value: 359, letter: 'س' },
-            'الغفر': { value: 394, letter: 'ع' },
-            'الزبانا': { value: 427, letter: 'ف' },
-            'الإكليل': { value: 460, letter: 'ص' },
-            'القلب': { value: 491, letter: 'ق' },
-            'الشولة': { value: 519, letter: 'ر' },
-            'النعائم': { value: 543, letter: 'ش' },
-            'البلدة': { value: 564, letter: 'ت' },
-            'سعد الذابح': { value: 589, letter: 'ث' },
-            'سعد بلع': { value: 609, letter: 'خ' },
-            'سعد السعود': { value: 631, letter: 'ذ' },
-            'سعد الأخبية': { value: 657, letter: 'ض' },
-            'الفرغ المقدم': { value: 683, letter: 'ظ' },
-            'الفرغ المؤخر': { value: 709, letter: 'غ' },
-            'الرشا': { value: 737, letter: 'أ' }
-        };
-
-        // معلومات التاريخ الهجري
-        const HIJRI_MONTHS = {
-            1: 'محرم', 2: 'صفر', 3: 'ربيع الأول', 4: 'ربيع الآخر', 
-            5: 'جمادى الأولى', 6: 'جمادى الآخرة', 7: 'رجب', 8: 'شعبان', 
-            9: 'رمضان', 10: 'شوال', 11: 'ذو القعدة', 12: 'ذو الحجة'
-        };
+        // ملء برج القمر
+        const moonSign = calculateMoonSign();
+        document.getElementById('moonSign').value = moonSign;
         
-        const ARABIC_DAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-
-        // الدوال المساعدة
-        function cleanText(text) { 
-            if (!text) return '';
-            // إزالة التشكيل والحركات
-            let cleaned = text.replace(/[ًٌٍَُِّْـ]/g, '');
-            // توحيد أشكال الألف
-            cleaned = cleaned.replace(/أ|إ|آ/g, 'ا');
-            // تحويل التاء المربوطة إلى هاء
-            cleaned = cleaned.replace(/ة/g, 'ه');
-            // إزالة المسافات الزائدة والأحرف غير العربية
-            cleaned = cleaned.replace(/[^\u0600-\u06FF\s]/g, '').replace(/\s+/g, ' ').trim();
-            return cleaned;
-        }
+        // ملء منزلة القمر
+        const moonMansion = calculateMoonMansion();
+        document.getElementById('moonMansion').value = moonMansion;
         
-        function textToLetters(text) { 
-            const cleaned = cleanText(text);
-            return cleaned.split('').filter(char => char !== ' ');
-        }
-        
-        function getCharValueKabir(char) { 
-            return ABJAD_KABIR[char] || 0; 
-        }
-        
-        function reduceToOnes(number) {
-            if (number <= 0) return 0;
-            if (number <= 9) return number;
-            
-            let sum = 0;
-            let num = number;
-            while (num > 0) {
-                sum += num % 10;
-                num = Math.floor(num / 10);
-            }
-            return reduceToOnes(sum);
-        }
-        
-        function subtractNineNine(number) {
-            while (number > 9) {
-                number -= 9;
-                if (number <= 0) number += 9;
-            }
-            return number;
-        }
-        
-        function getNazir(char) { 
-            return NAZAIR[char] || char; 
-        }
-        
-        function getNisbat(a, b) { 
-            a = reduceToOnes(a);
-            b = reduceToOnes(b);
-            const key = `${a}-${b}`; 
-            return NISBAT_TABLE[key] || 0;
-        }
-        
-        function numberToLettersString(number) {
-            let result = '';
-            let remaining = number;
-            const values = Object.keys(NUMBER_TO_LETTERS).map(Number).sort((a, b) => b - a);
-            
-            for (const value of values) {
-                while (remaining >= value) {
-                    result += NUMBER_TO_LETTERS[value];
-                    remaining -= value;
-                }
-            }
-            return result;
-        }
-        
-        function getHijriDate() {
-            try {
-                const today = new Date();
-                
-                // حساب تقريبي للتاريخ الهجري (يمكن استبداله بمكتبة دقيقة)
-                const hijriYear = Math.floor((today.getFullYear() - 622) * (33/32));
-                const hijriMonthIndex = (today.getMonth() + 1) % 12 || 12;
-                const hijriDay = today.getDate() % 30 || 30;
-                const dayOfWeek = today.getDay();
-                
-                return {
-                    day: ARABIC_DAYS[dayOfWeek],
-                    month: HIJRI_MONTHS[hijriMonthIndex],
-                    year: 1447 // تقريب للعام الهجري الحالي
-                };
-            } catch (error) {
-                console.error("Error getting Hijri date:", error);
-                return {
-                    day: 'الجمعة',
-                    month: 'ذو الحجة',
-                    year: 1447
-                };
-            }
-        }
-
-        // ==============================================================================
-        // 2. النواة الجفرية (jafr-core.js)
-        // ==============================================================================
-
-        class JafrCore {
-            constructor() {
-                this.reset();
-            }
-
-            reset() {
-                this.question = '';
-                this.expectedAnswer = '';
-                this.askerName = '';
-                this.motherName = '';
-                this.day = '';
-                this.month = '';
-                this.year = '';
-                this.risingSign = '';
-                this.moonSign = '';
-                this.moonMansion = '';
-                this.hourLord = '';
-                
-                this.letters = [];
-                this.values = [];
-                this.reducedValues = [];
-                
-                this.entrances = {
-                    madkhalKabir: 0,
-                    madkhalWaseetKabir: 0,
-                    majmooMadkhalWaseet: 0,
-                    madkhalSagheer: 0
-                };
-                
-                this.steps = {
-                    asas: '',
-                    nazir: '',
-                    nisbatAsas: [],
-                    nisbatNazir: [],
-                    tatimma1: [],
-                    asasNazir1: [],
-                    asasNazir2: [],
-                    tatimma2: [],
-                    tatimmaTatimma: [],
-                    hasilAdad: [],
-                    quwa: [],
-                    hasel: [],
-                    mustahsala: [],
-                    nazirMustahsala: [],
-                    jawab: '',
-                };
-                
-                this.externalFactors = {
-                    timeFactor: '',
-                    astroFactor: '',
-                    nameFactor: '',
-                    combinedFactor: ''
-                };
-                
-                this.analysis = {
-                    finalAnswer: '',
-                    expectedAnswerMatch: 0,
-                    takseer: '',
-                    interpretation: ''
-                };
-                
-                this.status = 'ready';
-                this.startTime = null;
-                this.endTime = null;
-                this.stepNames = {
-                    asas: '1. سطر الأساس',
-                    nazir: '2. سطر النظيرة',
-                    nisbatAsas: '3. حاصل نسبة الأساس',
-                    nisbatNazir: '4. حاصل نسبة النظيرة',
-                    tatimma1: '5. سطر التتمة الأولى',
-                    asasNazir1: '6. نسبة الأساس والنظيرة (1)',
-                    asasNazir2: '7. نسبة الأساس والنظيرة (2) - مدوّر',
-                    tatimma2: '8. سطر التتمة الثانية',
-                    tatimmaTatimma: '9. سطر تتمة التتمتين',
-                    hasilAdad: '10. سطر حاصل الأعداد',
-                    quwa: '11. سطر القوى',
-                    hasel: '12. سطر الحاصل',
-                    mustahsala: '13. سطر المستحصلة',
-                    nazirMustahsala: '14. سطر نظير المستحصلة',
-                    jawab: '15. سطر الصدر والمؤخر (الجواب)'
-                };
-            }
-
-            setInputs(inputs) {
-                this.question = inputs.question;
-                this.expectedAnswer = inputs.expectedAnswer;
-                this.askerName = inputs.name;
-                this.motherName = inputs.motherName;
-                this.day = inputs.day;
-                this.month = inputs.month;
-                this.year = inputs.year;
-                this.risingSign = inputs.risingSign;
-                this.moonSign = inputs.moonSign;
-                this.moonMansion = inputs.moonMansion;
-                this.hourLord = inputs.hourLord;
-                
-                this.processQuestion();
-            }
-            
-            processQuestion() {
-                this.letters = textToLetters(this.question);
-                this.values = this.letters.map(char => getCharValueKabir(char));
-                this.reducedValues = this.values.map(value => reduceToOnes(value));
-            }
-
-            calculateEntrances() {
-                if (this.values.length === 0) {
-                    throw new Error('يجب معالجة السؤال أولاً');
-                }
-                
-                // 1. المدخل الكبير: مجموع الجمل الكبير
-                this.entrances.madkhalKabir = this.values.reduce((sum, val) => sum + val, 0);
-                
-                // 2. المدخل الوسيط الكبير: الرد إلى الآحاد
-                this.entrances.madkhalWaseetKabir = reduceToOnes(this.entrances.madkhalKabir);
-                
-                // 3. مجموع المدخل الوسيط: مجموع الآحاد المختزلة
-                this.entrances.majmooMadkhalWaseet = this.reducedValues.reduce((sum, val) => sum + val, 0);
-                
-                // 4. المدخل الصغير: رد المجموع إلى الآحاد
-                this.entrances.madkhalSagheer = reduceToOnes(this.entrances.majmooMadkhalWaseet);
-            }
-
-            generateAsas() {
-                // بناء على المداخل الأربعة كما في الشرح
-                const firstSixLetters = ['ع', 'خ', 'م', 'ز', 'س', 'د'];
-                let asas = '';
-                const targetLength = 16;
-                
-                // تكرار الحروف الستة الأولى للحصول على 16 حرفاً
-                for (let i = 0; i < targetLength; i++) {
-                    asas += firstSixLetters[i % firstSixLetters.length];
-                }
-                
-                this.steps.asas = asas;
-            }
-
-            generateNazir() {
-                this.steps.nazir = this.steps.asas.split('').map(getNazir).join('');
-            }
-
-            calculateNisbatAsas() {
-                const values = this.steps.asas.split('').map(char => reduceToOnes(getCharValueKabir(char)));
-                this.steps.nisbatAsas = values.slice(0, -1).map((val, i) => getNisbat(val, values[i + 1]));
-            }
-
-            calculateNisbatNazir() {
-                const values = this.steps.nazir.split('').map(char => reduceToOnes(getCharValueKabir(char)));
-                this.steps.nisbatNazir = values.slice(0, -1).map((val, i) => getNisbat(val, values[i + 1]));
-            }
-
-            calculateTatimma1() {
-                const asasNisbat = this.steps.nisbatAsas;
-                const nazirNisbat = this.steps.nisbatNazir;
-                
-                this.steps.tatimma1 = asasNisbat.map((a, i) => {
-                    const b = nazirNisbat[i];
-                    if (a === b) {
-                        return a + b; // إذا تساوى العددان نجمع
-                    } else {
-                        return Math.abs(a - b); // وإلا نطرح الأقل من الأكثر
-                    }
-                });
-            }
-
-            calculateAsasNazir1() {
-                const valuesAsas = this.steps.asas.split('').map(char => reduceToOnes(getCharValueKabir(char)));
-                const valuesNazir = this.steps.nazir.split('').map(char => reduceToOnes(getCharValueKabir(char)));
-                
-                this.steps.asasNazir1 = valuesAsas.map((a, i) => getNisbat(a, valuesNazir[i]));
-            }
-
-            calculateAsasNazir2() {
-                const first = this.steps.asasNazir1;
-                // تدوير الحساب: نضع العنصر الأول في الأخير
-                this.steps.asasNazir2 = [...first.slice(1), first[0]];
-            }
-
-            calculateTatimma2() {
-                const first = this.steps.asasNazir1;
-                const second = this.steps.asasNazir2;
-                
-                this.steps.tatimma2 = first.map((a, i) => {
-                    const b = second[i];
-                    if (a === b) {
-                        return a + b;
-                    } else {
-                        return Math.abs(a - b);
-                    }
-                });
-            }
-
-            calculateTatimmaTatimma() {
-                const tatimma1 = this.steps.tatimma1;
-                const tatimma2 = this.steps.tatimma2;
-                
-                this.steps.tatimmaTatimma = tatimma1.map((a, i) => {
-                    const b = tatimma2[i];
-                    if (a === b) {
-                        return a + b;
-                    } else {
-                        return Math.abs(a - b);
-                    }
-                });
-            }
-
-            calculateHasilAdad() {
-                const numbers = this.steps.tatimmaTatimma;
-                this.steps.hasilAdad = numbers.map(num => {
-                    const reduced = subtractNineNine(num);
-                    return ABJAD_WADII[reduced] || 'أ';
-                });
-            }
-
-            calculateQuwa() {
-                this.steps.quwa = this.steps.hasilAdad.map(char => {
-                    const value = getCharValueKabir(char);
-                    const reduced = subtractNineNine(value);
-                    const finalValue = reduced % 28 || 28;
-                    return ABJAD_WADII[finalValue] || 'أ';
-                });
-            }
-
-            calculateExternalFactors() {
-                // حساب العامل الزمني
-                const daysValues = {
-                    'السبت': 100, 'الأحد': 200, 'الاثنين': 300, 
-                    'الثلاثاء': 400, 'الأربعاء': 500, 'الخميس': 600, 'الجمعة': 700
-                };
-                
-                const monthsValues = {
-                    'محرم': 1, 'صفر': 2, 'ربيع الأول': 3, 'ربيع الآخر': 4,
-                    'جمادى الأولى': 5, 'جمادى الآخرة': 6, 'رجب': 7, 'شعبان': 8,
-                    'رمضان': 9, 'شوال': 10, 'ذو القعدة': 11, 'ذو الحجة': 12
-                };
-                
-                let timeValue = 0;
-                timeValue += daysValues[this.day] || 0;
-                timeValue += (monthsValues[this.month] || 0) * 50;
-                timeValue += parseInt(this.year) || 1447;
-                
-                this.externalFactors.timeFactor = numberToLettersString(reduceToOnes(timeValue));
-                
-                // حساب العامل الفلكي
-                let astroValue = 0;
-                astroValue += BURUJ[this.risingSign]?.value || 0;
-                astroValue += BURUJ[this.moonSign]?.value || 0;
-                astroValue += MANAZIL_ALQAMAR[this.moonMansion]?.value || 0;
-                
-                this.externalFactors.astroFactor = numberToLettersString(reduceToOnes(astroValue));
-                
-                // حساب العامل الاسمي
-                let nameValue = 0;
-                nameValue += textToLetters(this.askerName).reduce((sum, char) => sum + getCharValueKabir(char), 0);
-                if (this.motherName) {
-                    nameValue += textToLetters(this.motherName).reduce((sum, char) => sum + getCharValueKabir(char), 0);
-                }
-                
-                this.externalFactors.nameFactor = numberToLettersString(reduceToOnes(nameValue));
-                
-                // العامل المشترك
-                const combinedValue = reduceToOnes(timeValue + astroValue + nameValue);
-                this.externalFactors.combinedFactor = numberToLettersString(combinedValue);
-            }
-
-            calculateHasel() {
-                const allLetters = [
-                    ...this.steps.asas.split(''),
-                    ...this.steps.nazir.split(''),
-                    ...this.steps.quwa,
-                    ...this.externalFactors.combinedFactor.split('')
-                ];
-                
-                this.steps.hasel = allLetters.map(char => {
-                    const value = getCharValueKabir(char);
-                    const reduced = reduceToOnes(value);
-                    return ABJAD_WADII[reduced] || 'أ';
-                });
-            }
-
-            calculateMustahsala() {
-                this.steps.mustahsala = this.steps.hasel.map(char => {
-                    const value = getCharValueKabir(char);
-                    let reduced = value + 7;
-                    while (reduced > 28) {
-                        reduced -= 7;
-                    }
-                    return ABJAD_WADII[reduced] || 'أ';
-                });
-            }
-
-            calculateNazirMustahsala() {
-                this.steps.nazirMustahsala = this.steps.mustahsala.map(getNazir);
-            }
-
-            calculateJawab() {
-                const nazir = this.steps.nazirMustahsala;
-                const length = nazir.length;
-                if (length === 0) {
-                    this.steps.jawab = '';
-                    return;
-                }
-                
-                const jawabArray = [];
-                let start = 0;
-                let end = length - 1;
-                
-                // تكسير مؤخر صدر
-                for (let i = 0; i < length; i++) {
-                    if (i % 2 === 0) {
-                        jawabArray.push(nazir[end]);
-                        end--;
-                    } else {
-                        jawabArray.push(nazir[start]);
-                        start++;
-                    }
-                }
-                
-                this.steps.jawab = jawabArray.join(' ');
-                this.analyzeJawab(this.steps.jawab);
-            }
-
-            analyzeJawab(jawab) {
-                // تحليل الجواب النهائي
-                const letters = jawab.replace(/\s/g, '').split('');
-                
-                // مقارنة مع الجواب المتوقع إذا وجد
-                let matchPercent = 0;
-                if (this.expectedAnswer && letters.length > 0) {
-                    const expectedLetters = textToLetters(this.expectedAnswer);
-                    let matched = 0;
-                    
-                    for (let i = 0; i < Math.min(letters.length, expectedLetters.length); i++) {
-                        if (letters[i] === expectedLetters[i]) {
-                            matched++;
-                        }
-                    }
-                    
-                    if (expectedLetters.length > 0) {
-                        matchPercent = Math.round((matched / expectedLetters.length) * 100);
-                    }
-                }
-                
-                this.analysis.expectedAnswerMatch = matchPercent;
-                
-                // التكسير
-                const takseerResult = this.performTakseer(letters);
-                this.analysis.takseer = takseerResult;
-                
-                // تفسير الجواب
-                this.analysis.finalAnswer = this.interpretJawab(letters, takseerResult);
-            }
-
-            performTakseer(letters) {
-                if (letters.length < 4) return 'لا يمكن التكسير (أقل من 4 أحرف)';
-                
-                // تكسير مؤخر صدر
-                const length = letters.length;
-                const takseerArray = [];
-                let start = 0;
-                let end = length - 1;
-                
-                for (let i = 0; i < length; i++) {
-                    if (i % 2 === 0) {
-                        takseerArray.push(letters[end]);
-                        end--;
-                    } else {
-                        takseerArray.push(letters[start]);
-                        start++;
-                    }
-                }
-                
-                return takseerArray.join(' ');
-            }
-
-            interpretJawab(letters, takseer) {
-                let interpretation = '';
-                
-                // تحليل بسيط للأحرف
-                if (letters.length >= 4) {
-                    const firstFour = letters.slice(0, 4).join('');
-                    interpretation += `الجواب الناطق: ${firstFour}...\n`;
-                    
-                    // محاولة قراءة الأحرف ككلمات
-                    const possibleWords = this.tryReadAsWords(letters);
-                    if (possibleWords.length > 0) {
-                        interpretation += `الكلمات المحتملة: ${possibleWords.join('، ')}\n`;
-                    }
-                }
-                
-                interpretation += `التكسير: ${takseer}\n`;
-                interpretation += `عدد الأحرف: ${letters.length}`;
-                
-                return interpretation;
-            }
-
-            tryReadAsWords(letters) {
-                const words = [];
-                const commonWords = {
-                    'محمد': 'م ح م د',
-                    'علي': 'ع ل ي',
-                    'فاطمة': 'ف ا ط م ه',
-                    'حسن': 'ح س ن',
-                    'حسين': 'ح س ي ن',
-                    'الله': 'ا ل ل ه',
-                    'الرحمن': 'ا ل ر ح م ن',
-                    'الرحيم': 'ا ل ر ح ي م'
-                };
-                
-                // محاولة مطابقة مع الكلمات الشائعة
-                const lettersStr = letters.join('');
-                for (const [word, pattern] of Object.entries(commonWords)) {
-                    const cleanPattern = pattern.replace(/\s/g, '');
-                    if (lettersStr.includes(cleanPattern)) {
-                        words.push(word);
-                    }
-                }
-                
-                return words;
-            }
-
-            async calculateFullJafr() {
-                this.status = 'processing';
-                this.startTime = new Date();
-                
-                try {
-                    // خطوات الحساب الـ15
-                    await this.updateProgress(5, 'معالجة السؤال...');
-                    this.calculateEntrances();
-                    
-                    await this.updateProgress(10, 'حساب المداخل الأربعة...');
-                    this.generateAsas();
-                    
-                    await this.updateProgress(15, 'توليد سطر الأساس...');
-                    this.generateNazir();
-                    
-                    await this.updateProgress(20, 'حساب سطر النظيرة...');
-                    this.calculateNisbatAsas();
-                    
-                    await this.updateProgress(25, 'حساب نسب الأساس...');
-                    this.calculateNisbatNazir();
-                    
-                    await this.updateProgress(30, 'حساب نسب النظيرة...');
-                    this.calculateTatimma1();
-                    
-                    await this.updateProgress(35, 'حساب التتمة الأولى...');
-                    this.calculateAsasNazir1();
-                    
-                    await this.updateProgress(40, 'حساب نسبة الأساس/النظيرة...');
-                    this.calculateAsasNazir2();
-                    
-                    await this.updateProgress(45, 'تدوير النسبة...');
-                    this.calculateTatimma2();
-                    
-                    await this.updateProgress(50, 'حساب التتمة الثانية...');
-                    this.calculateTatimmaTatimma();
-                    
-                    await this.updateProgress(55, 'حساب تتمة التتمتين...');
-                    this.calculateHasilAdad();
-                    
-                    await this.updateProgress(60, 'استنطاق الأعداد...');
-                    this.calculateQuwa();
-                    
-                    await this.updateProgress(65, 'حساب سطر القوى...');
-                    this.calculateExternalFactors();
-                    
-                    await this.updateProgress(70, 'حساب العوامل الخارجية...');
-                    this.calculateHasel();
-                    
-                    await this.updateProgress(75, 'حساب سطر الحاصل...');
-                    this.calculateMustahsala();
-                    
-                    await this.updateProgress(80, 'حساب المستحصلة...');
-                    this.calculateNazirMustahsala();
-                    
-                    await this.updateProgress(85, 'حساب نظير المستحصلة...');
-                    this.calculateJawab();
-                    
-                    await this.updateProgress(95, 'استخراج الجواب النهائي...');
-                    await this.updateProgress(100, 'تحليل النتائج...');
-                    
-                    this.endTime = new Date();
-                    this.status = 'completed';
-                    
-                    return {
-                        success: true,
-                        answer: this.analysis.finalAnswer,
-                        jawab: this.steps.jawab,
-                        steps: this.steps,
-                        entrances: this.entrances,
-                        analysis: this.analysis,
-                        duration: this.getDuration()
-                    };
-                    
-                } catch (error) {
-                    this.status = 'error';
-                    throw error;
-                }
-            }
-            
-            updateProgress(percent, message) {
-                return new Promise(resolve => {
-                    setTimeout(() => {
-                        if (window.updateProgressUI) {
-                            window.updateProgressUI(percent, message);
-                        }
-                        resolve();
-                    }, 100);
-                });
-            }
-            
-            getDuration() {
-                if (!this.startTime || !this.endTime) return '--';
-                const diff = this.endTime.getTime() - this.startTime.getTime();
-                const seconds = (diff / 1000).toFixed(2);
-                return `${seconds} ثانية`;
-            }
-            
-            getStepName(key) {
-                return this.stepNames[key] || key;
-            }
-        }
-
-        // ==============================================================================
-        // 3. ملف واجهة المستخدم (ui-handler.js)
-        // ==============================================================================
-
-        class UIHandler {
-            constructor() {
-                this.jafrCore = new JafrCore();
-                this.isCalculating = false;
-                this.initialize();
-            }
-
-            initialize() {
-                this.populateDropdowns();
-                this.setCurrentHijriDate();
-                this.setupEventListeners();
-                this.updateSystemStatus();
-                this.showTableTab('abjad');
-            }
-
-            populateDropdowns() {
-                // أيام الأسبوع
-                const daySelect = document.getElementById('day');
-                daySelect.innerHTML = '<option value="">اختر اليوم</option>';
-                ARABIC_DAYS.forEach(day => {
-                    const option = document.createElement('option');
-                    option.value = day;
-                    option.textContent = day;
-                    daySelect.appendChild(option);
-                });
-
-                // الشهور الهجرية
-                const monthSelect = document.getElementById('month');
-                monthSelect.innerHTML = '<option value="">اختر الشهر</option>';
-                Object.values(HIJRI_MONTHS).forEach(month => {
-                    const option = document.createElement('option');
-                    option.value = month;
-                    option.textContent = month;
-                    monthSelect.appendChild(option);
-                });
-
-                // الأبراج
-                const risingSelect = document.getElementById('risingSign');
-                risingSelect.innerHTML = '<option value="">اختر البرج</option>';
-                Object.keys(BURUJ).forEach(burj => {
-                    const option = document.createElement('option');
-                    option.value = burj;
-                    option.textContent = burj;
-                    risingSelect.appendChild(option);
-                });
-
-                // برج القمر
-                const moonSignSelect = document.getElementById('moonSign');
-                moonSignSelect.innerHTML = '<option value="">اختر البرج</option>';
-                Object.keys(BURUJ).forEach(burj => {
-                    const option = document.createElement('option');
-                    option.value = burj;
-                    option.textContent = burj;
-                    moonSignSelect.appendChild(option);
-                });
-
-                // منازل القمر
-                const mansionSelect = document.getElementById('moonMansion');
-                mansionSelect.innerHTML = '<option value="">اختر المنزلة</option>';
-                Object.keys(MANAZIL_ALQAMAR).forEach(mansion => {
-                    const option = document.createElement('option');
-                    option.value = mansion;
-                    option.textContent = mansion;
-                    mansionSelect.appendChild(option);
-                });
-            }
-
-            setCurrentHijriDate() {
-                const hijriDate = getHijriDate();
-                
-                document.getElementById('day').value = hijriDate.day;
-                document.getElementById('month').value = hijriDate.month;
-                document.getElementById('year').value = hijriDate.year;
-            }
-
-            setupEventListeners() {
-                // تحديث حالة النظام عند تغيير المدخلات
-                document.querySelectorAll('.input-field').forEach(input => {
-                    input.addEventListener('input', () => this.updateSystemStatus());
-                    input.addEventListener('change', () => this.updateSystemStatus());
-                });
-                
-                // إضافة منشط للجواب المتوقع
-                const expectedAnswer = document.getElementById('expectedAnswer');
-                expectedAnswer.addEventListener('input', function() {
-                    if (this.value.trim()) {
-                        this.style.borderColor = 'var(--primary-color)';
-                    } else {
-                        this.style.borderColor = '';
-                    }
-                });
-            }
-
-            switchPanel(panelId) {
-                // إخفاء جميع اللوحات
-                document.querySelectorAll('.main-panel').forEach(panel => {
-                    panel.classList.remove('active');
-                });
-                
-                // إلغاء تنشيط جميع علامات التبويب
-                document.querySelectorAll('.nav-tab').forEach(tab => {
-                    tab.classList.remove('active');
-                });
-                
-                // إظهار اللوحة المطلوبة
-                const panel = document.getElementById(panelId);
-                if (panel) {
-                    panel.classList.add('active');
-                }
-                
-                // تنشيط علامة التبويب المقابلة
-                const tab = document.querySelector(`.nav-tab[onclick*="${panelId}"]`);
-                if (tab) {
-                    tab.classList.add('active');
-                }
-            }
-
-            async startCalculation() {
-                if (this.isCalculating) {
-                    this.showMessage('warning', 'جاري تنفيذ عملية حسابية حالياً');
-                    return;
-                }
-
-                if (!this.validateInputs()) {
-                    return;
-                }
-
-                try {
-                    this.isCalculating = true;
-                    this.showLoading(true);
-                    this.resetProgress();
-                    
-                    const inputs = this.collectInputs();
-                    this.jafrCore.reset();
-                    this.jafrCore.setInputs(inputs);
-
-                    const result = await this.jafrCore.calculateFullJafr();
-                    
-                    this.displayResults(result);
-                    this.updateCalculationSteps();
-                    this.updateAnalysisContent(result);
-                    this.showMessage('success', 'تم الحساب الجفري بنجاح!');
-                    
-                } catch (error) {
-                    console.error('Calculation error:', error);
-                    this.showMessage('error', `خطأ في الحساب: ${error.message}`);
-                } finally {
-                    this.isCalculating = false;
-                    this.showLoading(false);
-                    this.switchPanel('panel-calculation');
-                }
-            }
-
-            validateInputs() {
-                const inputs = this.collectInputs();
-                const errors = [];
-                
-                if (!inputs.question || inputs.question.trim().length < 3) {
-                    errors.push('السؤال الرئيسي قصير جداً (3 أحرف على الأقل)');
-                }
-                
-                if (!inputs.name || inputs.name.trim().length < 2) {
-                    errors.push('اسم السائل مطلوب (حرفين على الأقل)');
-                }
-                
-                if (!inputs.day) {
-                    errors.push('اليوم مطلوب');
-                }
-                
-                if (!inputs.month) {
-                    errors.push('الشهر الهجري مطلوب');
-                }
-                
-                if (!inputs.year || isNaN(inputs.year) || inputs.year < 1 || inputs.year > 2000) {
-                    errors.push('السنة الهجرية مطلوبة (بين 1 و 2000)');
-                }
-                
-                if (!inputs.risingSign) {
-                    errors.push('طالع البرج مطلوب');
-                }
-                
-                if (errors.length > 0) {
-                    this.showMessage('error', errors.join('<br>'));
-                    return false;
-                }
-                
-                return true;
-            }
-
-            collectInputs() {
-                return {
-                    question: document.getElementById('mainQuestion').value.trim(),
-                    expectedAnswer: document.getElementById('expectedAnswer').value.trim(),
-                    name: document.getElementById('askerName').value.trim(),
-                    motherName: document.getElementById('motherName').value.trim(),
-                    day: document.getElementById('day').value,
-                    month: document.getElementById('month').value,
-                    year: document.getElementById('year').value,
-                    risingSign: document.getElementById('risingSign').value,
-                    moonSign: document.getElementById('moonSign').value,
-                    moonMansion: document.getElementById('moonMansion').value,
-                    hourLord: document.getElementById('hourLord').value
-                };
-            }
-
-            displayResults(result) {
-                // عرض الجواب النهائي
-                const finalAnswerElement = document.getElementById('finalAnswer');
-                if (result.jawab) {
-                    finalAnswerElement.innerHTML = result.jawab.split(' ').map((char, i) => 
-                        `<span style="color: ${i % 2 === 0 ? 'var(--primary-color)' : 'var(--secondary-color)'}">${char}</span>`
-                    ).join(' ');
-                } else {
-                    finalAnswerElement.textContent = 'لم يتم حساب جواب بعد';
-                }
-                
-                // عرض المداخل الأربعة
-                const entrances = result.entrances || {};
-                document.getElementById('entrancesResult').innerHTML = `
-                    المدخل الكبير: <span class="result-highlight">${entrances.madkhalKabir || '--'}</span>
-                    <br>المدخل الوسيط الكبير: <span class="result-highlight">${entrances.madkhalWaseetKabir || '--'}</span>
-                    <br>مجموع المدخل الوسيط: <span class="result-highlight">${entrances.majmooMadkhalWaseet || '--'}</span>
-                    <br>المدخل الصغير: <span class="result-highlight">${entrances.madkhalSagheer || '--'}</span>
-                `;
-                
-                // عرض إحصائيات الحساب
-                document.getElementById('calculationStats').innerHTML = `
-                    وقت البدء: ${this.jafrCore.startTime ? this.jafrCore.startTime.toLocaleTimeString('ar-SA') : '--'}
-                    <br>الوقت المستغرق: <span class="result-highlight">${result.duration || '--'}</span>
-                    <br>عدد الخطوات: 15
-                    <br>حالة: ${result.success ? 'مكتمل بنجاح' : 'فشل'}
-                `;
-            }
-
-            updateCalculationSteps() {
-                const container = document.getElementById('calculationSteps');
-                const steps = this.jafrCore.steps;
-                
-                let html = '<div class="steps-container">';
-                
-                Object.entries(steps).forEach(([key, value], index) => {
-                    const stepName = this.jafrCore.getStepName(key);
-                    let stepValue = '';
-                    
-                    if (Array.isArray(value)) {
-                        stepValue = value.join(' • ');
-                    } else if (typeof value === 'string') {
-                        stepValue = value;
-                    } else {
-                        stepValue = JSON.stringify(value);
-                    }
-                    
-                    html += `
-                        <div class="step">
-                            <div class="step-header">
-                                <div class="step-number">${index + 1}</div>
-                                <div class="step-title">${stepName}</div>
-                                <div class="step-status status-completed">مكتمل</div>
-                            </div>
-                            <div class="code-block">${stepValue || '---'}</div>
-                        </div>
-                    `;
-                });
-                
-                html += '</div>';
-                container.innerHTML = html;
-            }
-
-            updateAnalysisContent(result) {
-                const container = document.getElementById('analysisContent');
-                const analysis = result.analysis || {};
-                
-                let html = `
-                    <div class="result-item">
-                        <div class="result-header">
-                            <i>🔍</i>
-                            <span class="result-title">تحليل الجواب النهائي</span>
-                        </div>
-                        <div class="code-block">
-                            ${analysis.finalAnswer ? analysis.finalAnswer.replace(/\n/g, '<br>') : 'لا يوجد تحليل'}
-                        </div>
-                    </div>
-                `;
-                
-                if (analysis.expectedAnswerMatch > 0) {
-                    html += `
-                        <div class="result-item">
-                            <div class="result-header">
-                                <i>🎯</i>
-                                <span class="result-title">مقارنة مع الجواب المتوقع</span>
-                            </div>
-                            <div class="code-block">
-                                نسبة التطابق: <span style="color: var(${analysis.expectedAnswerMatch > 70 ? '--primary-color' : '--warning-color'})">
-                                    ${analysis.expectedAnswerMatch}%
-                                </span>
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                if (analysis.takseer) {
-                    html += `
-                        <div class="result-item">
-                            <div class="result-header">
-                                <i>🔄</i>
-                                <span class="result-title">تكسير الجواب</span>
-                            </div>
-                            <div class="code-block">
-                                ${analysis.takseer}
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                container.innerHTML = html;
-            }
-
-            showTableTab(tabId) {
-                // تحديث علامات التبويب
-                document.querySelectorAll('#panel-tables .nav-tab').forEach(tab => {
-                    tab.classList.remove('active');
-                });
-                
-                const activeTab = document.querySelector(`#panel-tables .nav-tab[onclick*="${tabId}"]`);
-                if (activeTab) {
-                    activeTab.classList.add('active');
-                }
-                
-                // عرض المحتوى المناسب
-                let content = '';
-                switch (tabId) {
-                    case 'abjad':
-                        content = this.generateAbjadTable();
-                        break;
-                    case 'nazair':
-                        content = this.generateNazairTable();
-                        break;
-                    case 'nisbat':
-                        content = this.generateNisbatTable();
-                        break;
-                    case 'tabai':
-                        content = this.generateTabaiTable();
-                        break;
-                    case 'buruj':
-                        content = this.generateBurujTable();
-                        break;
-                    case 'manazil':
-                        content = this.generateManazilTable();
-                        break;
-                }
-                
-                document.getElementById('tablesContent').innerHTML = content;
-            }
-
-            generateAbjadTable() {
-                let html = `
-                    <h3 style="color: var(--primary-color); margin-bottom: 20px; text-align: center;">
-                        جدول الأبجدية الكبير (حساب الجمل)
-                    </h3>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>الحرف</th>
-                                    <th>القيمة</th>
-                                    <th>النظير</th>
-                                    <th>الطبعة</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-                
-                // ترتيب الحروف أبجدياً
-                const sortedChars = Object.entries(ABJAD_KABIR)
-                    .filter(([char]) => char.length === 1)
-                    .sort((a, b) => a[1] - b[1]);
-                
-                sortedChars.forEach(([char, value]) => {
-                    const nazir = getNazir(char);
-                    let tabia = 'غير معروف';
-                    for (const [t, chars] of Object.entries(TABAII)) {
-                        if (chars.includes(char)) {
-                            tabia = t;
-                            break;
-                        }
-                    }
-                    
-                    html += `
-                        <tr>
-                            <td><strong>${char}</strong></td>
-                            <td>${value}</td>
-                            <td>${nazir}</td>
-                            <td><span style="color: ${this.getTabiaColor(tabia)}">${tabia}</span></td>
-                        </tr>
-                    `;
-                });
-                
-                html += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-                
-                return html;
-            }
-
-            generateNazairTable() {
-                let html = `
-                    <h3 style="color: var(--primary-color); margin-bottom: 20px; text-align: center;">
-                        جدول النظائر (المتقابلات)
-                    </h3>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>الحرف</th>
-                                    <th>النظير</th>
-                                    <th>الحرف</th>
-                                    <th>النظير</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-                
-                const entries = Object.entries(NAZAIR);
-                const half = Math.ceil(entries.length / 2);
-                
-                for (let i = 0; i < half; i++) {
-                    const [char1, nazir1] = entries[i];
-                    const [char2, nazir2] = entries[i + half] || ['', ''];
-                    
-                    html += `
-                        <tr>
-                            <td><strong>${char1}</strong></td>
-                            <td>${nazir1}</td>
-                            <td><strong>${char2}</strong></td>
-                            <td>${nazir2}</td>
-                        </tr>
-                    `;
-                }
-                
-                html += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-                
-                return html;
-            }
-
-            generateNisbatTable() {
-                let html = `
-                    <h3 style="color: var(--primary-color); margin-bottom: 20px; text-align: center;">
-                        جدول حاصل النسب الجفري (9×9)
-                    </h3>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>النسبة</th>
-                `;
-                
-                // رؤوس الأعمدة
-                for (let i = 1; i <= 9; i++) {
-                    html += `<th>${i}</th>`;
-                }
-                
-                html += `
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-                
-                // الصفوف
-                for (let i = 1; i <= 9; i++) {
-                    html += '<tr>';
-                    html += `<td><strong>${i}</strong></td>`;
-                    
-                    for (let j = 1; j <= 9; j++) {
-                        html += `<td>${getNisbat(i, j)}</td>`;
-                    }
-                    
-                    html += '</tr>';
-                }
-                
-                html += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-                
-                return html;
-            }
-
-            generateTabaiTable() {
-                let html = `
-                    <h3 style="color: var(--primary-color); margin-bottom: 20px; text-align: center;">
-                        جدول الطبائع الأربعة
-                    </h3>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
-                `;
-                
-                const elements = [
-                    { name: '🔥 ناري', color: '#ef4444', chars: TABAII.ناري },
-                    { name: '💨 هوائي', color: '#3b82f6', chars: TABAII.هوائي },
-                    { name: '💧 مائي', color: '#06b6d4', chars: TABAII.مائي },
-                    { name: '🌍 ترابي', color: '#10b981', chars: TABAII.ترابي }
-                ];
-                
-                elements.forEach(element => {
-                    html += `
-                        <div class="result-item" style="border-color: ${element.color}">
-                            <div class="result-header">
-                                <span style="color: ${element.color}">${element.name}</span>
-                            </div>
-                            <div class="code-block">
-                                ${element.chars.join(' • ')}
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                html += '</div>';
-                return html;
-            }
-
-            generateBurujTable() {
-                let html = `
-                    <h3 style="color: var(--primary-color); margin-bottom: 20px; text-align: center;">
-                        جدول الأبراج الفلكية
-                    </h3>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>البرج</th>
-                                    <th>العنصر</th>
-                                    <th>الحاكم</th>
-                                    <th>القيمة الجفرية</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-                
-                Object.entries(BURUJ).forEach(([name, data]) => {
-                    html += `
-                        <tr>
-                            <td><strong>${name}</strong></td>
-                            <td>${data.element}</td>
-                            <td>${data.ruler}</td>
-                            <td>${data.value}</td>
-                        </tr>
-                    `;
-                });
-                
-                html += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-                
-                return html;
-            }
-
-            generateManazilTable() {
-                let html = `
-                    <h3 style="color: var(--primary-color); margin-bottom: 20px; text-align: center;">
-                        جدول منازل القمر (28 منزلة)
-                    </h3>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>المنزلة</th>
-                                    <th>الحرف</th>
-                                    <th>القيمة</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-                
-                Object.entries(MANAZIL_ALQAMAR).forEach(([name, data]) => {
-                    html += `
-                        <tr>
-                            <td><strong>${name}</strong></td>
-                            <td>${data.letter}</td>
-                            <td>${data.value}</td>
-                        </tr>
-                    `;
-                });
-                
-                html += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-                
-                return html;
-            }
-
-            getTabiaColor(tabia) {
-                const colors = {
-                    'ناري': '#ef4444',
-                    'هوائي': '#3b82f6',
-                    'مائي': '#06b6d4',
-                    'ترابي': '#10b981'
-                };
-                return colors[tabia] || '#9ca3af';
-            }
-
-            showMessage(type, message) {
-                // إخفاء جميع الرسائل أولاً
-                document.querySelectorAll('.message').forEach(msg => {
-                    msg.style.display = 'none';
-                });
-                
-                // عرض الرسالة المطلوبة
-                const messageElement = document.getElementById(`${type}-message`);
-                if (messageElement) {
-                    messageElement.innerHTML = message;
-                    messageElement.style.display = 'block';
-                    
-                    // إخفاء الرسالة بعد 5 ثوانٍ
-                    setTimeout(() => {
-                        messageElement.style.display = 'none';
-                    }, 5000);
-                }
-            }
-
-            updateSystemStatus() {
-                const inputs = this.collectInputs();
-                let status = 'جاهز';
-                let color = 'var(--primary-color)';
-                
-                if (this.isCalculating) {
-                    status = 'جاري الحساب...';
-                    color = 'var(--secondary-color)';
-                } else if (!inputs.question) {
-                    status = 'بانتظار السؤال';
-                    color = 'var(--warning-color)';
-                } else if (!inputs.name) {
-                    status = 'بانتظار الاسم';
-                    color = 'var(--warning-color)';
-                } else if (!inputs.risingSign) {
-                    status = 'بانتظار طالع البرج';
-                    color = 'var(--warning-color)';
-                }
-                
-                document.getElementById('systemStatus').innerHTML = `
-                    <span style="color: ${color}">${status}</span>
-                `;
-            }
-
-            updateProgressUI(percent, message) {
-                const fill = document.getElementById('progressFill');
-                const percentElement = document.getElementById('progressPercent');
-                const details = document.getElementById('loadingDetails');
-                
-                if (fill) {
-                    fill.style.width = `${percent}%`;
-                }
-                
-                if (percentElement) {
-                    percentElement.textContent = `${percent}%`;
-                }
-                
-                if (details && message) {
-                    details.textContent = message;
-                }
-            }
-
-            resetProgress() {
-                const fill = document.getElementById('progressFill');
-                const percent = document.getElementById('progressPercent');
-                
-                if (fill) {
-                    fill.style.width = '0%';
-                }
-                
-                if (percent) {
-                    percent.textContent = '0%';
-                }
-            }
-
-            showLoading(show) {
-                const overlay = document.getElementById('loadingOverlay');
-                const startBtn = document.getElementById('startBtn');
-                
-                if (overlay) {
-                    overlay.style.display = show ? 'flex' : 'none';
-                }
-                
-                if (startBtn) {
-                    startBtn.disabled = show;
-                }
-            }
-
-            resetAll() {
-                if (this.isCalculating) {
-                    this.showMessage('warning', 'لا يمكن الإعادة أثناء الحساب');
-                    return;
-                }
-                
-                if (confirm('هل أنت متأكد من رغبتك في مسح جميع البيانات؟')) {
-                    // مسح المدخلات
-                    document.getElementById('mainQuestion').value = '';
-                    document.getElementById('expectedAnswer').value = '';
-                    document.getElementById('askerName').value = '';
-                    document.getElementById('motherName').value = '';
-                    document.getElementById('hourLord').value = '';
-                    
-                    // إعادة تعيين التاريخ الهجري
-                    this.setCurrentHijriDate();
-                    
-                    // إعادة تعيين الحقول الفلكية
-                    document.getElementById('risingSign').value = '';
-                    document.getElementById('moonSign').value = '';
-                    document.getElementById('moonMansion').value = '';
-                    
-                    // إعادة تعيين النواة الجفرية
-                    this.jafrCore.reset();
-                    
-                    // إعادة تعيين النتائج
-                    this.updateSystemStatus();
-                    this.resetProgress();
-                    
-                    document.getElementById('finalAnswer').innerHTML = 'لم يتم حساب جواب بعد';
-                    document.getElementById('entrancesResult').innerHTML = `
-                        المدخل الكبير: --
-                        <br>المدخل الوسيط الكبير: --
-                        <br>مجموع المدخل الوسيط: --
-                        <br>المدخل الصغير: --
-                    `;
-                    document.getElementById('calculationStats').innerHTML = `
-                        وقت البدء: --
-                        <br>الوقت المستغرق: --
-                        <br>عدد الخطوات: 0
-                        <br>حالة: غير مبدأ
-                    `;
-                    document.getElementById('calculationSteps').innerHTML = `
-                        <div class="message message-info">
-                            ⏳ لم تبدأ عملية الحساب بعد. يرجى ملء المدخلات والضغط على "بدء الحساب الجفري"
-                        </div>
-                    `;
-                    document.getElementById('analysisContent').innerHTML = `
-                        <div class="message message-warning">
-                            ⚠️ لم يتم إجراء أي تحليل بعد. يرجى إتمام الحساب أولاً
-                        </div>
-                    `;
-                    
-                    this.showMessage('success', 'تم إعادة تعيين جميع البيانات بنجاح');
-                    this.switchPanel('panel-main');
-                }
-            }
-
-            showDetailedResults() {
-                if (!this.jafrCore.steps.asas) {
-                    this.showMessage('warning', 'لم يتم إجراء أي حساب لعرض التفاصيل');
-                    return;
-                }
-                
-                this.switchPanel('panel-calculation');
-            }
-
-            exportCalculation() {
-                if (!this.jafrCore.steps.asas) {
-                    this.showMessage('warning', 'لا توجد بيانات للتصدير');
-                    return;
-                }
-                
-                const data = {
-                    timestamp: new Date().toLocaleString('ar-SA'),
-                    inputs: this.collectInputs(),
-                    entrances: this.jafrCore.entrances,
-                    steps: this.jafrCore.steps,
-                    analysis: this.jafrCore.analysis
-                };
-                
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `jafr-calculation-${Date.now()}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                this.showMessage('success', 'تم تصدير البيانات بنجاح');
-            }
-
-            refreshTables() {
-                this.showTableTab('abjad');
-                this.showMessage('success', 'تم تحديث الجداول بنجاح');
-            }
-        }
-
-        // تهيئة النظام عند تحميل الصفحة
-        document.addEventListener('DOMContentLoaded', () => {
-            window.updateProgressUI = (percent, message) => {
-                if (window.uiHandler) {
-                    window.uiHandler.updateProgressUI(percent, message);
-                }
-            };
-            
-            window.uiHandler = new UIHandler();
+        console.log('تم ملء الحقول الفلكية تلقائياً:', {
+            hourLord,
+            risingSign,
+            moonSign,
+            moonMansion
         });
-    </script>
-</body>
-</html>
+    }
+
+    // باقي الدوال كما هي...
+}
+
+// ==============================================================================
+// إصلاح دالة calculateJawab لضمان ظهور الجواب
+// ==============================================================================
+
+class JafrCore {
+    // ... باقي الكود ...
+    
+    calculateJawab() {
+        const nazir = this.steps.nazirMustahsala;
+        const length = nazir.length;
+        if (length === 0) {
+            this.steps.jawab = '';
+            return;
+        }
+        
+        // طريقة تكسير مؤخر صدر الصحيحة
+        // نأخذ الحرف الأخير ثم الأول ثم قبل الأخير ثم الثاني وهكذا
+        let jawabArray = [];
+        let left = 0;
+        let right = length - 1;
+        
+        while (left <= right) {
+            if (left === right) {
+                jawabArray.push(nazir[right]);
+                break;
+            }
+            jawabArray.push(nazir[right]); // مؤخر
+            jawabArray.push(nazir[left]);  // صدر
+            left++;
+            right--;
+        }
+        
+        this.steps.jawab = jawabArray.join(' ');
+        console.log('الجواب النهائي:', this.steps.jawab);
+        this.analyzeJawab(this.steps.jawab);
+    }
+    
+    analyzeJawab(jawab) {
+        // تحليل الجواب النهائي
+        const letters = jawab.replace(/\s/g, '').split('');
+        
+        // مقارنة مع الجواب المتوقع إذا وجد
+        let matchPercent = 0;
+        if (this.expectedAnswer && letters.length > 0) {
+            const expectedLetters = textToLetters(this.expectedAnswer);
+            let matched = 0;
+            
+            for (let i = 0; i < Math.min(letters.length, expectedLetters.length); i++) {
+                if (letters[i] === expectedLetters[i]) {
+                    matched++;
+                }
+            }
+            
+            if (expectedLetters.length > 0) {
+                matchPercent = Math.round((matched / expectedLetters.length) * 100);
+            }
+        }
+        
+        this.analysis.expectedAnswerMatch = matchPercent;
+        
+        // التكسير
+        const takseerResult = this.performTakseer(letters);
+        this.analysis.takseer = takseerResult;
+        
+        // تفسير الجواب
+        this.analysis.finalAnswer = this.interpretJawab(letters, takseerResult);
+        
+        // تخزين الجواب كسلسلة
+        this.analysis.finalAnswerString = jawab;
+    }
+    
+    // ... باقي الكود ...
+}
+
+// ==============================================================================
+// تعديل دالة displayResults لضمان عرض الجواب
+// ==============================================================================
+
+class UIHandler {
+    // ... باقي الكود ...
+    
+    displayResults(result) {
+        // عرض الجواب النهائي
+        const finalAnswerElement = document.getElementById('finalAnswer');
+        
+        // محاولة استخراج الجواب من multiple sources
+        let finalJawab = '';
+        if (result.analysis && result.analysis.finalAnswerString) {
+            finalJawab = result.analysis.finalAnswerString;
+        } else if (result.jawab) {
+            finalJawab = result.jawab;
+        } else if (result.steps && result.steps.jawab) {
+            finalJawab = result.steps.jawab;
+        }
+        
+        if (finalJawab && finalJawab.trim() !== '') {
+            // تنسيق الجواب مع ألوان متبادلة
+            const formattedJawab = finalJawab.split(' ').map((char, i) => 
+                `<span style="color: ${i % 2 === 0 ? '#0d9488' : '#f59e0b'}; font-size: 1.2em; margin: 0 2px;">${char}</span>`
+            ).join(' ');
+            
+            finalAnswerElement.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <div style="color: #f59e0b; margin-bottom: 10px;">الجواب الجفري النهائي:</div>
+                    <div style="font-size: 1.5em; line-height: 2; letter-spacing: 5px;">
+                        ${formattedJawab}
+                    </div>
+                    ${this.expectedAnswer ? `
+                        <div style="margin-top: 20px; color: #9ca3af;">
+                            نسبة المطابقة مع الجواب المتوقع: 
+                            <span style="color: ${result.analysis.expectedAnswerMatch > 70 ? '#10b981' : '#f59e0b'}">
+                                ${result.analysis.expectedAnswerMatch}%
+                            </span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        } else {
+            finalAnswerElement.innerHTML = `
+                <div style="text-align: center; color: #9ca3af; padding: 40px;">
+                    لم يتم استخراج جواب بعد<br>
+                    يرجى التأكد من إدخال السؤال بشكل صحيح
+                </div>
+            `;
+        }
+        
+        // عرض المداخل الأربعة
+        const entrances = result.entrances || {};
+        document.getElementById('entrancesResult').innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                <div style="background: rgba(13, 148, 136, 0.1); padding: 10px; border-radius: 8px;">
+                    <div style="color: #9ca3af; font-size: 0.9em;">المدخل الكبير</div>
+                    <div style="color: #0d9488; font-weight: bold;">${entrances.madkhalKabir || '--'}</div>
+                </div>
+                <div style="background: rgba(13, 148, 136, 0.1); padding: 10px; border-radius: 8px;">
+                    <div style="color: #9ca3af; font-size: 0.9em;">المدخل الوسيط الكبير</div>
+                    <div style="color: #0d9488; font-weight: bold;">${entrances.madkhalWaseetKabir || '--'}</div>
+                </div>
+                <div style="background: rgba(13, 148, 136, 0.1); padding: 10px; border-radius: 8px;">
+                    <div style="color: #9ca3af; font-size: 0.9em;">مجموع المدخل الوسيط</div>
+                    <div style="color: #0d9488; font-weight: bold;">${entrances.majmooMadkhalWaseet || '--'}</div>
+                </div>
+                <div style="background: rgba(13, 148, 136, 0.1); padding: 10px; border-radius: 8px;">
+                    <div style="color: #9ca3af; font-size: 0.9em;">المدخل الصغير</div>
+                    <div style="color: #0d9488; font-weight: bold;">${entrances.madkhalSagheer || '--'}</div>
+                </div>
+            </div>
+        `;
+        
+        // عرض إحصائيات الحساب
+        document.getElementById('calculationStats').innerHTML = `
+            وقت البدء: ${this.jafrCore.startTime ? this.jafrCore.startTime.toLocaleTimeString('ar-SA') : '--'}
+            <br>الوقت المستغرق: <span style="color: #0d9488; font-weight: bold;">${result.duration || '--'}</span>
+            <br>عدد الخطوات: <span style="color: #f59e0b; font-weight: bold;">15</span>
+            <br>الحالة: <span style="color: ${result.success ? '#10b981' : '#ef4444'}; font-weight: bold;">
+                ${result.success ? '✅ مكتمل بنجاح' : '❌ فشل'}
+            </span>
+        `;
+        
+        // تحديث حالة النظام
+        this.updateSystemStatus();
+    }
+    
+    // ... باقي الكود ...
+}
+
+// ==============================================================================
+// إضافة استدعاء الاختبار التلقائي عند التحميل
+// ==============================================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.updateProgressUI = (percent, message) => {
+        if (window.uiHandler) {
+            window.uiHandler.updateProgressUI(percent, message);
+        }
+    };
+    
+    window.uiHandler = new UIHandler();
+    
+    // اختبار تلقائي بعد 2 ثانية من التحميل
+    setTimeout(() => {
+        console.log('اختبار النظام الجفري...');
+        
+        // تعبئة نموذج اختباري
+        const testQuestion = "إمام زمان كيست";
+        const testExpectedAnswer = "محمد مهدي امام باشد";
+        
+        document.getElementById('mainQuestion').value = testQuestion;
+        document.getElementById('expectedAnswer').value = testExpectedAnswer;
+        document.getElementById('askerName').value = "السائل";
+        
+        // ملاحظة: الحقول الفلكية تم ملؤها تلقائياً
+        
+        console.log('النموذج معبأ وجاهز للاختبار');
+        console.log('يمكنك الضغط على زر "بدء الحساب الجفري" للاختبار');
+        
+        // عرض رسالة توضيحية
+        uiHandler.showMessage('info', `
+            ✅ تم تعبئة الحقول الفلكية تلقائياً<br>
+            ✅ تم إضافة مثال اختباري<br>
+            ✅ النظام جاهز للعمل<br>
+            <br>
+            اضغط على زر "بدء الحساب الجفري" للبدء
+        `);
+        
+    }, 2000);
+});
